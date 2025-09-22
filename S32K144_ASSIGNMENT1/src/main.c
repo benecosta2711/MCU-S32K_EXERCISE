@@ -1,6 +1,7 @@
 #include "S32K144.h"
-#include "s32k144_gpio.h"
 #include <stdio.h>
+
+#include "Driver_GPIO.h"
 
 #if defined (__ghs__)
     #define __INTERRUPT_SVC  __interrupt
