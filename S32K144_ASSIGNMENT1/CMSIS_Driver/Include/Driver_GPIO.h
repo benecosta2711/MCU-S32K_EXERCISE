@@ -31,7 +31,6 @@ extern "C"
 
 #include "S32K144.h"
 #include "Driver_Common.h"
-#include "hal_gpio.h"
 
 
 /**

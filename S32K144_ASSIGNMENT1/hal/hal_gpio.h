@@ -3,6 +3,7 @@
 
 #include "S32K144.h"
 #include "stdint.h"
+#include "stdlib.h"
 
 
 typedef enum {
@@ -36,6 +37,8 @@ typedef struct {
 	IRQn_Type irq_num;
 } pin_map_t;
 
+typedef void (*HAL_GPIO_CallBack_t) (uint32_t pin, uint32_t event);
+
 extern const pin_map_t pin_map[];
 
 void HAL_GPIO_EnablePortClock(uint32_t virtual_pin);
@@ -50,6 +53,7 @@ void HAL_GPIO_SetPullResistor(uint32_t virtual_pin, hal_gpio_pull_resistor_t res
 void HAL_GPIO_SetEventTrigger(uint32_t virtual_pin, hal_gpio_interrupt_trigger_t trigger);
 uint8_t HAL_GPIO_IsInterruptFlagSet(uint32_t virtual_pin);
 void HAL_GPIO_ClearInterruptFlag(uint32_t virtual_pin);
+uint8_t HAL_GPIO_RegisterCallback(uint32_t virtual_pin, HAL_GPIO_CallBack_t callback);
 
 
 

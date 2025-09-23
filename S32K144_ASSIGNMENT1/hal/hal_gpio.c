@@ -1,10 +1,22 @@
 #include "hal_gpio.h"
 #include "my_nvic.h"
 
+#define MAX_CALLBACK_FUNC 10
+
+#define PIN_BUTTON1	 			0
+#define PIN_BUTTON2	 			1
+#define PIN_LED_RED				2
+#define PIN_LED_GREEN			3
+
 const pin_map_t pin_map[] = {
-	{IP_PORTD, IP_PTD, 15, PCC_PORTD_INDEX, PORTD_IRQn},
-	{IP_PORTE, IP_PTE, 4, PCC_PORTE_INDEX, PORTE_IRQn}
+	[PIN_BUTTON1] = {IP_PORTE, IP_PTE, 4, PCC_PORTE_INDEX, PORTE_IRQn},
+	[PIN_BUTTON2] = {IP_PORTE, IP_PTE, 5, PCC_PORTE_INDEX, PORTE_IRQn},
+	[PIN_LED_RED] = {IP_PORTD, IP_PTD, 15, PCC_PORTD_INDEX, PORTD_IRQn},
+	[PIN_LED_GREEN] = {IP_PORTD, IP_PTD, 16, PCC_PORTD_INDEX, PORTD_IRQn}
 };
+
+static HAL_GPIO_CallBack_t g_hal_callbacks[MAX_CALLBACK_FUNC];
+
 
 void HAL_GPIO_EnablePortClock(uint32_t virtual_pin)
 {
@@ -190,3 +202,41 @@ void HAL_GPIO_ClearInterruptFlag(uint32_t virtual_pin)
 	pin_map[virtual_pin].port_base->ISFR = (1UL << pin_map[virtual_pin].pin_num);
 }
 
+uint8_t HAL_GPIO_RegisterCallback(uint32_t virtual_pin, HAL_GPIO_CallBack_t callback)
+{
+	uint8_t result = 1;
+
+	if(virtual_pin < MAX_CALLBACK_FUNC)
+	{
+		g_hal_callbacks[virtual_pin] = callback;
+	}
+	else
+	{
+		result = 0;
+	}
+
+	return result;
+
+}
+
+void PORTE_IRQHandler(void)
+{
+    if (HAL_GPIO_IsInterruptFlagSet(PIN_BUTTON1))
+    {
+        HAL_GPIO_ClearInterruptFlag(PIN_BUTTON1);
+
+        if (g_hal_callbacks[PIN_BUTTON1] != NULL)
+        {
+            g_hal_callbacks[PIN_BUTTON1](PIN_BUTTON1, HAL_GPIO_TRIGGER_FALLING_EDGE);
+        }
+    }
+    else if (HAL_GPIO_IsInterruptFlagSet(PIN_BUTTON2))
+	{
+		HAL_GPIO_ClearInterruptFlag(PIN_BUTTON2);
+
+		if (g_hal_callbacks[PIN_BUTTON2] != NULL)
+		{
+			g_hal_callbacks[PIN_BUTTON2](PIN_BUTTON2, HAL_GPIO_TRIGGER_FALLING_EDGE);
+		}
+	}
+}
