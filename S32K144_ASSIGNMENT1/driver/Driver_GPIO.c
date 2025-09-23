@@ -12,8 +12,7 @@ static int32_t GPIO_Setup (ARM_GPIO_Pin_t pin, ARM_GPIO_SignalEvent_t cb_event) 
 
   if (PIN_IS_AVAILABLE(pin))
   {
-	  HAL_GPIO_EnablePortClock(pin);
-	  HAL_GPIO_SetAsGpio(pin);
+	  HAL_GPIO_Init(pin);
 
 	  uint8_t register_result = HAL_GPIO_RegisterCallback(pin, cb_event);
 
