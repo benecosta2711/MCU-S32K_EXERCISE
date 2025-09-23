@@ -92,7 +92,9 @@ void SystemInit(void)
 
   /* Configure timeout */
   IP_WDOG->TOVAL = (uint32_t )0xFFFF;
+
 #endif /* (DISABLE_WDOG) */
+
 
 /**************************************************************************/
             /* ENABLE CACHE */
@@ -101,6 +103,7 @@ void SystemInit(void)
   /* Invalidate and enable code cache */
   LMEM->PCCCR = LMEM_PCCCR_INVW0(1) | LMEM_PCCCR_INVW1(1) | LMEM_PCCCR_GO(1) | LMEM_PCCCR_ENCACHE(1);
 #endif /* defined(I_CACHE) && (ICACHE_ENABLE == 1) */
+
 }
 
 /*FUNCTION**********************************************************************
