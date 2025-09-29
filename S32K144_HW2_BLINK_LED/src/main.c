@@ -1,11 +1,13 @@
 /**
  * @file    main.c
+ * @author  Nguyen Vuong Trung Nam
  * @brief   Application entry point.
  * @details Chương trình ví dụ cơ bản cho S32K144, thực hiện nhấp nháy 3 đèn LED
  * trên Port D (PTD0, PTD15, PTD16) với chu kỳ delay.
  */
 
 #include "S32K144.h"
+#include "my_nvic.h"
 #include <stdio.h>
 
 /* =================================================================================================================
@@ -53,6 +55,10 @@ void GPIO_TogglePin(GPIO_Type* gpio_port, uint8_t pin_number);
 void GPIO_SetPin(GPIO_Type* gpio_port, uint8_t pin_number);
 void GPIO_ClearPin(GPIO_Type* gpio_port, uint8_t pin_number);
 
+// --- Các hàm liên quan đến LPIT ---
+void TIM_Init(void);
+
+
 // --- Hàm của ứng dụng ---
 void App_Init_LEDs(void);
 
@@ -63,24 +69,25 @@ void App_Init_LEDs(void);
 int main(void) {
     // Khởi tạo các chân GPIO được sử dụng làm đèn LED
     App_Init_LEDs();
+    TIM_Init();
 
     // Vòng lặp vô tận của chương trình
     while(1)
     {
-    	// Đảo trạng thái LED đỏ (PTD0) và chờ 3 giây
-		GPIO_SetPin(IP_PTD, RED_LED_PIN);
-		System_DelayMs(3000);
-		GPIO_ClearPin(IP_PTD, RED_LED_PIN);
-
-		// Đảo trạng thái LED xanh lá (PTD15) và chờ 3 giây
-		GPIO_SetPin(IP_PTD, GREEN_LED_PIN);
-		System_DelayMs(3000);
-		GPIO_ClearPin(IP_PTD, GREEN_LED_PIN);
-
-        // Đảo trạng thái LED xanh dương (PTD16) và chờ 3 giây
-        GPIO_SetPin(IP_PTD, BLUE_LED_PIN);
-        System_DelayMs(3000);
-        GPIO_ClearPin(IP_PTD, BLUE_LED_PIN);
+//    	// Đảo trạng thái LED đỏ (PTD0) và chờ 3 giây
+//		GPIO_SetPin(IP_PTD, RED_LED_PIN);
+//		System_DelayMs(3000);
+//		GPIO_ClearPin(IP_PTD, RED_LED_PIN);
+//
+//		// Đảo trạng thái LED xanh lá (PTD15) và chờ 3 giây
+//		GPIO_SetPin(IP_PTD, GREEN_LED_PIN);
+//		System_DelayMs(3000);
+//		GPIO_ClearPin(IP_PTD, GREEN_LED_PIN);
+//
+//        // Đảo trạng thái LED xanh dương (PTD16) và chờ 3 giây
+//        GPIO_SetPin(IP_PTD, BLUE_LED_PIN);
+//        System_DelayMs(3000);
+//        GPIO_ClearPin(IP_PTD, BLUE_LED_PIN);
     }
 
     __NO_RETURN
@@ -203,4 +210,39 @@ void GPIO_EnablePortClock(uint8_t port_index)
 {
     // Set bit CGC (Clock Gate Control) trong thanh ghi PCC tương ứng của port
     IP_PCC->PCCn[port_index] |= PCC_PCCn_CGC_MASK;
+}
+
+void TIM_Init()
+{
+	IP_PCC->PCCn[PCC_LPIT_INDEX] |= PCC_PCCn_CGC_MASK;
+    // 1. Bật clock cho module và thực hiện reset
+    IP_LPIT0->MCR |= LPIT_MCR_SW_RST_MASK;   // Reset module
+    IP_LPIT0->MCR &= ~LPIT_MCR_SW_RST_MASK;  // Xóa bit reset
+    IP_LPIT0->MCR |= LPIT_MCR_M_CEN_MASK;   // Bật clock cho module
+
+    // 2. Cấu hình chế độ cho Kênh 0 TRƯỚC KHI bật timer
+    // Chế độ đếm định kỳ 32-bit (MODE=00b) và tự động reload (TSOI=0b)
+    IP_LPIT0->TMR[0].TCTRL = 0; // Reset thanh ghi về 0, đảm bảo T_EN=0
+
+    // 3. Đặt giá trị đếm cho timer
+    // Ví dụ cho 1ms với clock 8MHz
+    IP_LPIT0->TMR[0].TVAL = 8000 - 1;
+
+    // 4. Bật ngắt trong module LPIT
+    IP_LPIT0->MIER |= LPIT_MIER_TIE0_MASK;
+
+    // 5. Bật ngắt trong bộ điều khiển ngắt của CPU (NVIC)
+    NVIC->ISER[LPIT0_Ch0_IRQn / 32] = (1 << (LPIT0_Ch0_IRQn % 32));
+
+    // 6. Bật timer Kênh 0 sau khi đã hoàn tất cấu hình
+    IP_LPIT0->TMR[0].TCTRL |= LPIT_SETTEN_SET_T_EN_0_MASK; // Dùng đúng mask T_EN cho TCTRL
+}
+
+volatile uint32_t counter = 0;
+
+void LPIT0_Ch0_IRQHandler(){
+	counter = (counter + 1) % 3000;
+	if(!counter){
+		GPIO_TogglePin(IP_PTD, BLUE_LED_PIN);
+	}
 }
