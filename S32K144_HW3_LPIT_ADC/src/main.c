@@ -1,4 +1,7 @@
 #include "S32K144.h"
+
+#include "software_timer.h"
+#include "adc.h"
 #include <stdio.h>
 
 #if defined (__ghs__)
@@ -24,9 +27,18 @@
 /**
  * @brief Định nghĩa các thông số cho đèn LED xanh.
  */
-#define BLUE_LED_PIN        0U
-#define BLUE_LED_PORT       IP_PORTD
-#define BLUE_LED_GPIO       IP_PTD
+#define BLUE_LED_PIN        	0U
+#define RED_LED_PIN        		15U
+#define GREEN_LED_PIN        	16U
+
+#define BLUE_LED_PORT       	IP_PORTD
+#define RED_LED_PORT       		IP_PORTD
+#define GREEN_LED_PORT       	IP_PORTD
+
+#define BLUE_LED_GPIO       	IP_PTD
+#define RED_LED_GPIO       		IP_PTD
+#define GREEN_LED_GPIO       	IP_PTD
+
 
 /*==================================================================================================
 * FUNCTION PROTOTYPES
@@ -61,13 +73,49 @@ void GPIO_SetPin(GPIO_Type* gpio_port, uint8_t pin_number);
  */
 void GPIO_ClearPin(GPIO_Type* gpio_port, uint8_t pin_number);
 
+/**
+ * @brief Chương trình ứng dụng của lab 3
+ */
+void App_ControlLedADC(void);
+
+
+
 
 int main(void) {
+	Clock_Init_System_SPLL();
+
+	GPIO_EnablePortClock(PCC_PORTD_INDEX);
+	GPIO_InitPin(BLUE_LED_PORT, BLUE_LED_GPIO, BLUE_LED_PIN,  GPIO_PIN_OUTPUT);
+	GPIO_ClearPin(BLUE_LED_GPIO, BLUE_LED_PIN);
+
+	GPIO_EnablePortClock(PCC_PORTD_INDEX);
+	GPIO_InitPin(RED_LED_PORT, RED_LED_GPIO, BLUE_LED_PIN,  GPIO_PIN_OUTPUT);
+	GPIO_ClearPin(RED_LED_GPIO, RED_LED_PIN);
+
+	GPIO_EnablePortClock(PCC_PORTD_INDEX);
+	GPIO_InitPin(GREEN_LED_PORT, GREEN_LED_GPIO, GREEN_LED_PIN,  GPIO_PIN_OUTPUT);
+	GPIO_ClearPin(GREEN_LED_GPIO, GREEN_LED_PIN);
+
+	if (ADC_Init() == ADC_INIT_FAIL) {
+		while(1);
+	}
+
+	TIM_Init();
+	TIM_SetTime(0, 100);
+
+	uint16_t adc_value = 0;
 
 	while(1)
 	{
+		if (TIM_IsFlag(0))
+		{
+			adc_value = ADC_Read_Channel(12);
+			potention_meter = (adc_value * 5) / 1023;
+			TIM_SetTime(0, 100);
+		}
 
 	}
+
     __NO_RETURN
     return 0;
 }
@@ -187,4 +235,9 @@ void Clock_Init_System_SPLL(void)
                  | SCG_RCCR_DIVBUS(1)
                  | SCG_RCCR_DIVSLOW(3);
     while (((IP_SCG->CSR & SCG_CSR_SCS_MASK) >> SCG_CSR_SCS_SHIFT) != 6);
+}
+
+void App_ControlLedADC(void)
+{
+
 }
