@@ -4,28 +4,17 @@
  * @details File này chứa mã nguồn để khởi tạo hardware timer (LPIT) và
  * quản lý các software timer con.
  *
- * @author ADMIN
+ * @author Nguyen Vuong Trung Nam
  * @date Sep 30, 2025
  */
 
 #include "software_timer.h"
 
-// Nên đổi tên SOFT_TIMER_NUM thành MAX_SOFTWARE_TIMERS để đồng bộ với file .h
 #define MAX_SOFTWARE_TIMERS   10
 
-/**
- * @brief Mảng lưu giá trị đếm ngược cho mỗi software timer.
- * @note Khai báo là 'volatile' vì biến này được thay đổi trong một ngắt (ISR)
- * và được truy cập ở vòng lặp chính.
- */
+
 volatile uint32_t timer_counter[MAX_SOFTWARE_TIMERS];
-
-/**
- * @brief Mảng cờ báo hiệu khi một software timer đã hết hạn.
- * @note Khai báo là 'volatile' vì lý do tương tự như timer_counter.
- */
 volatile uint8_t timer_flag[MAX_SOFTWARE_TIMERS];
-
 
 /**
  * @brief Hàm cập nhật cốt lõi cho tất cả software timer.
@@ -79,6 +68,7 @@ static void TIM_ClearInterruptFlag(uint8_t channel)
     default:
         break;
     }
+
 }
 
 /**
@@ -120,6 +110,7 @@ void TIM_Init(void)
         timer_counter[i] = 0;
         timer_flag[i] = 0;
     }
+
 }
 
 /**
@@ -139,6 +130,7 @@ uint8_t TIM_IsFlag(uint8_t index)
         timer_flag[index] = 0;
         return flag_status;
     }
+
 }
 
 /**
@@ -156,6 +148,7 @@ uint8_t TIM_SetTime(uint8_t index, uint32_t duration_ms)
     timer_flag[index] = 0;
 
     return 1;
+
 }
 
 /**
@@ -171,4 +164,5 @@ void LPIT0_Ch0_IRQHandler(void)
     TIM_ClearInterruptFlag(0);
 
     TIM_TimerRun();
+
 }

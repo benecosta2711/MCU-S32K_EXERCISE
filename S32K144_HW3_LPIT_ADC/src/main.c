@@ -1,23 +1,35 @@
-#include "S32K144.h"
+/**
+ * @file      main.c
+ * @author    Nguyen Vuong Trung Nam
+ * @brief     Application entry point.
+ * @details   Chương trình ví dụ cơ bản cho S32K144, thực hiện điều khiển trạng thái đền RGB dựa
+ * trên biến trở, áp dụng kiến thức LPIT tạo xung nhiệu cho chương trình ứng dụng và ADC phục vụ
+ * việc đọc giá trị của biến trở.
+ */
 
+#include "S32K144.h"
 #include "software_timer.h"
 #include "adc.h"
-#include <stdio.h>
 
-#if defined (__ghs__)
-    #define __INTERRUPT_SVC  __interrupt
-    #define __NO_RETURN _Pragma("ghs nowarning 111")
-#elif defined (__ICCARM__)
-    #define __INTERRUPT_SVC  __svc
-    #define __NO_RETURN _Pragma("diag_suppress=Pe111")
-#elif defined (__GNUC__)
-    #define __INTERRUPT_SVC  __attribute__ ((interrupt ("SVC")))
-    #define __NO_RETURN
-#else
-    #define __INTERRUPT_SVC
-    #define __NO_RETURN
-#endif
+/*==================================================================================================
+* ENUM
+==================================================================================================*/
+typedef enum {
+    CONTROL_NONE,
+    CONTROL_BLUE,
+    CONTROL_GREEN,
+    CONTROL_RED
+} App_State_t;
 
+/*==================================================================================================
+* GLOBAL VARIABLES
+==================================================================================================*/
+uint32_t pot_value_ms = 0;
+App_State_t appState = CONTROL_NONE;
+
+/*==================================================================================================
+* MACROS DEFINE
+==================================================================================================*/
 /**
  * @brief Định nghĩa cho hướng của chân GPIO.
  */
@@ -27,18 +39,19 @@
 /**
  * @brief Định nghĩa các thông số cho đèn LED xanh.
  */
-#define BLUE_LED_PIN        	0U
-#define RED_LED_PIN        		15U
-#define GREEN_LED_PIN        	16U
+#define BLUE_LED_PIN            0U
+#define RED_LED_PIN             15U
+#define GREEN_LED_PIN           16U
+#define POT_PIN                 14U
 
-#define BLUE_LED_PORT       	IP_PORTD
-#define RED_LED_PORT       		IP_PORTD
-#define GREEN_LED_PORT       	IP_PORTD
+#define BLUE_LED_PORT           IP_PORTD
+#define RED_LED_PORT            IP_PORTD
+#define GREEN_LED_PORT          IP_PORTD
+#define POT_PORT                IP_PORTC
 
-#define BLUE_LED_GPIO       	IP_PTD
-#define RED_LED_GPIO       		IP_PTD
-#define GREEN_LED_GPIO       	IP_PTD
-
+#define BLUE_LED_GPIO           IP_PTD
+#define RED_LED_GPIO            IP_PTD
+#define GREEN_LED_GPIO          IP_PTD
 
 /*==================================================================================================
 * FUNCTION PROTOTYPES
@@ -53,10 +66,15 @@ void Clock_Init_System_SPLL(void);
  */
 void GPIO_EnablePortClock(uint8_t port_index);
 
-/**
+/*
  * @brief Cấu hình một chân GPIO là Input hoặc Output.
  */
 void GPIO_InitPin(PORT_Type* port, GPIO_Type* gpio_port, uint8_t pin_number, uint8_t direction);
+
+/*
+ * @brief Cấu hình một chân GPIO là chân Analog.
+ */
+void GPIO_InitPinAnalog(PORT_Type* port, uint8_t pin_number);
 
 /**
  * @brief Đảo trạng thái một chân GPIO.
@@ -74,82 +92,41 @@ void GPIO_SetPin(GPIO_Type* gpio_port, uint8_t pin_number);
 void GPIO_ClearPin(GPIO_Type* gpio_port, uint8_t pin_number);
 
 /**
- * @brief Chương trình ứng dụng của lab 3
+ * @brief Chương trình ứng dụng của bài tập 3.
  */
 void App_ControlLedADC(void);
 
-
-
-
-int main(void) {
-	Clock_Init_System_SPLL();
-
-	GPIO_EnablePortClock(PCC_PORTD_INDEX);
-	GPIO_InitPin(BLUE_LED_PORT, BLUE_LED_GPIO, BLUE_LED_PIN,  GPIO_PIN_OUTPUT);
-	GPIO_ClearPin(BLUE_LED_GPIO, BLUE_LED_PIN);
-
-	GPIO_EnablePortClock(PCC_PORTD_INDEX);
-	GPIO_InitPin(RED_LED_PORT, RED_LED_GPIO, BLUE_LED_PIN,  GPIO_PIN_OUTPUT);
-	GPIO_ClearPin(RED_LED_GPIO, RED_LED_PIN);
-
-	GPIO_EnablePortClock(PCC_PORTD_INDEX);
-	GPIO_InitPin(GREEN_LED_PORT, GREEN_LED_GPIO, GREEN_LED_PIN,  GPIO_PIN_OUTPUT);
-	GPIO_ClearPin(GREEN_LED_GPIO, GREEN_LED_PIN);
-
-	if (ADC_Init() == ADC_INIT_FAIL) {
-		while(1);
-	}
-
-	TIM_Init();
-	TIM_SetTime(0, 100);
-
-	uint16_t adc_value = 0;
-
-	while(1)
-	{
-		if (TIM_IsFlag(0))
-		{
-			adc_value = ADC_Read_Channel(12);
-			potention_meter = (adc_value * 5) / 1023;
-			TIM_SetTime(0, 100);
-		}
-
-	}
-
-    __NO_RETURN
-    return 0;
-}
+/**
+ * @brief Cấu hình clock hệ thống để chạy từ SPLL với thạch anh 8MHz.
+ * @note Các tần số clock cuối cùng:
+ * - Core Clock: 80 MHz
+ * - Bus Clock: 40 MHz
+ * - Slow (Flash) Clock: 20 MHz
+ * - SPLLDIV2 Output (cho ngoại vi): 20 MHz
+ */
+void Clock_Init_System_SPLL(void);
 
 /*==================================================================================================
-* GPIO DRIVER FUNCTIONS
+* FUNCTIONS DEFINE
 ==================================================================================================*/
-/**
- * @copydoc GPIO_SetPin
- */
 void GPIO_SetPin(GPIO_Type* gpio_port, uint8_t pin_number)
 {
     gpio_port->PSOR = (1UL << pin_number);
+
 }
 
-/**
- * @copydoc GPIO_ClearPin
- */
 void GPIO_ClearPin(GPIO_Type* gpio_port, uint8_t pin_number)
 {
     gpio_port->PCOR = (1UL << pin_number);
+
 }
 
-/**
- * @copydoc GPIO_TogglePin
- */
 void GPIO_TogglePin(GPIO_Type* gpio_port, uint8_t pin_number)
 {
     gpio_port->PTOR = (1UL << pin_number);
+
 }
 
-/**
- * @copydoc GPIO_InitPin
- */
 void GPIO_InitPin(PORT_Type* port, GPIO_Type* gpio_port, uint8_t pin_number, uint8_t direction)
 {
     /**
@@ -160,45 +137,43 @@ void GPIO_InitPin(PORT_Type* port, GPIO_Type* gpio_port, uint8_t pin_number, uin
     /**
      * Cấu hình hướng (Direction)
      */
-    if (direction == GPIO_PIN_OUTPUT) {
+    if (GPIO_PIN_OUTPUT == direction)
+    {
         /**
          * Set bit tương ứng trong thanh ghi PDDR (Port Data Direction Register)
          * để cấu hình là Output.
          */
         gpio_port->PDDR |= (1UL << pin_number);
-    } else {
+    }
+    else
+    {
         /**
          * Xóa bit tương ứng trong thanh ghi PDDR để cấu hình là Input.
          */
         gpio_port->PDDR &= ~(1UL << pin_number);
     }
+
 }
 
-/**
- * @copydoc GPIO_EnablePortClock
- */
+void GPIO_InitPinAnalog(PORT_Type* port, uint8_t pin_number)
+{
+    /**
+     * Cấu hình MUX: Set chân thành chức năng Analog (Alternative 0)
+     */
+    port->PCR[pin_number] = PORT_PCR_MUX(0);
+
+}
+
 void GPIO_EnablePortClock(uint8_t port_index)
 {
     /**
      * Set bit CGC (Clock Gate Control) trong thanh ghi PCC tương ứng của port.
      */
+    IP_PCC->PCCn[port_index] |= PCC_PCCn_PCS(6);
     IP_PCC->PCCn[port_index] |= PCC_PCCn_CGC_MASK;
+
 }
 
-/*==================================================================================================
-* SYSTEM CLOCK FUNCTIONS
-==================================================================================================*/
-/**
- * @brief Cấu hình clock hệ thống để chạy từ SPLL với thạch anh 8MHz.
- * @details Hàm này tuân thủ các hướng dẫn an toàn từ nhà sản xuất,
- * bao gồm việc bật các bộ giám sát clock.
- *
- * @note Các tần số clock cuối cùng:
- * - Core Clock: 80 MHz
- * - Bus Clock: 40 MHz
- * - Slow (Flash) Clock: 20 MHz
- * - SPLLDIV2 Output (cho ngoại vi): 20 MHz
- */
 void Clock_Init_System_SPLL(void)
 {
     /**
@@ -235,9 +210,111 @@ void Clock_Init_System_SPLL(void)
                  | SCG_RCCR_DIVBUS(1)
                  | SCG_RCCR_DIVSLOW(3);
     while (((IP_SCG->CSR & SCG_CSR_SCS_MASK) >> SCG_CSR_SCS_SHIFT) != 6);
+
 }
 
 void App_ControlLedADC(void)
 {
+    if (pot_value_ms >= 0 && pot_value_ms < 1250)
+    {
+        appState = CONTROL_NONE;
+
+    }
+    else if (pot_value_ms >= 1250 && pot_value_ms < 2500)
+    {
+        appState = CONTROL_BLUE;
+
+    }
+    else if (pot_value_ms >= 2500 && pot_value_ms < 3750)
+    {
+        appState = CONTROL_GREEN;
+
+    }
+    else if (pot_value_ms >= 3750 && pot_value_ms <= 5000)
+    {
+        appState = CONTROL_RED;
+
+    }
+    else
+    {
+        /* Do nothing */
+    }
+
+    switch (appState)
+    {
+    case CONTROL_NONE:
+        GPIO_SetPin(BLUE_LED_GPIO, BLUE_LED_PIN);
+        GPIO_SetPin(GREEN_LED_GPIO, GREEN_LED_PIN);
+        GPIO_SetPin(RED_LED_GPIO, RED_LED_PIN);
+
+        break;
+    case CONTROL_BLUE:
+        GPIO_ClearPin(BLUE_LED_GPIO, BLUE_LED_PIN);
+        GPIO_SetPin(GREEN_LED_GPIO, GREEN_LED_PIN);
+        GPIO_SetPin(RED_LED_GPIO, RED_LED_PIN);
+
+        break;
+    case CONTROL_GREEN:
+        GPIO_SetPin(BLUE_LED_GPIO, BLUE_LED_PIN);
+        GPIO_ClearPin(GREEN_LED_GPIO, GREEN_LED_PIN);
+        GPIO_SetPin(RED_LED_GPIO, RED_LED_PIN);
+
+        break;
+    case CONTROL_RED:
+        GPIO_SetPin(BLUE_LED_GPIO, BLUE_LED_PIN);
+        GPIO_SetPin(GREEN_LED_GPIO, GREEN_LED_PIN);
+        GPIO_ClearPin(RED_LED_GPIO, RED_LED_PIN);
+
+        break;
+    default:
+        break;
+    }
 
 }
+
+int main(void) {
+    uint16_t adc_value = 0;
+
+    Clock_Init_System_SPLL();
+
+    GPIO_EnablePortClock(PCC_PORTD_INDEX);
+    GPIO_InitPin(BLUE_LED_PORT, BLUE_LED_GPIO, BLUE_LED_PIN,  GPIO_PIN_OUTPUT);
+    GPIO_SetPin(BLUE_LED_GPIO, BLUE_LED_PIN);
+    GPIO_InitPin(RED_LED_PORT, RED_LED_GPIO, RED_LED_PIN,  GPIO_PIN_OUTPUT);
+    GPIO_SetPin(RED_LED_GPIO, RED_LED_PIN);
+    GPIO_InitPin(GREEN_LED_PORT, GREEN_LED_GPIO, GREEN_LED_PIN,  GPIO_PIN_OUTPUT);
+    GPIO_SetPin(GREEN_LED_GPIO, GREEN_LED_PIN);
+
+    if (ADC_INIT_FAIL == ADC_Init())
+    {
+        while(1);
+    }
+
+    GPIO_EnablePortClock(PCC_PORTC_INDEX);
+    GPIO_InitPinAnalog(POT_PORT, POT_PIN);
+
+    TIM_Init();
+    TIM_SetTime(0, 100);
+    TIM_SetTime(1, 100);
+
+    while(1)
+    {
+        if (TIM_IsFlag(0))
+        {
+            adc_value = ADC_Read_Channel(12);
+            pot_value_ms = (uint32_t)(((adc_value * 5.0f) / 255.0f) * 1000.0f);
+            TIM_SetTime(0, 100);
+        }
+
+        if(TIM_IsFlag(1))
+        {
+            App_ControlLedADC();
+            TIM_SetTime(1, 100);
+        }
+
+    }
+
+    return 0;
+
+}
+

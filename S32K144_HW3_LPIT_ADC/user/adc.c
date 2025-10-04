@@ -1,8 +1,11 @@
-/*
- * adc.c
+/**
+ * @file adc.c
+ * @brief File triển khai thư viện adc.h.
+ * @details File này chứa mã nguồn để khởi tạo ADC và API dùng để lấy dữ liệu
+ * đã đọc được từ thanh ghi.
  *
- * Created on: Oct 1, 2025
- * Author: ADMIN
+ * @author Nguyen Vuong Trung Nam
+ * @date Oct 1, 2025
  */
 
 #include "adc.h"
@@ -11,7 +14,7 @@
  * @brief  Khởi tạo, hiệu chuẩn và cấu hình ADC0.
  * @note   Hàm này thực hiện toàn bộ quá trình thiết lập cho ADC0, bao gồm
  * cấp xung nhịp, hiệu chuẩn bắt buộc và cấu hình cho chế độ hoạt động
- * bình thường (10-bit, software trigger). Hàm này chỉ nên được gọi một
+ * bình thường (8-bit, software trigger). Hàm này chỉ nên được gọi một
  * lần khi hệ thống khởi động.
  * @warning Logic kiểm tra lỗi hiệu chuẩn trong hàm này chưa chính xác.
  * @return ADC_SUCCESS nếu thành công, ADC_INIT_FAIL nếu thất bại.
@@ -48,9 +51,9 @@ uint8_t ADC_Init(void)
 
     /* BƯỚC 3: CẤU HÌNH CHO HOẠT ĐỘNG BÌNH THƯỜNG */
 
-    /* Thiết lập cấu hình hoạt động: clock nguồn, độ phân giải 10-bit và bộ chia */
+    /* Thiết lập cấu hình hoạt động: clock nguồn, độ phân giải 8-bit và bộ chia */
     IP_ADC0->CFG1 = ADC_CFG1_ADICLK(0) |   /* Chọn Alternate Clock 1 làm clock nội bộ */
-                  ADC_CFG1_MODE(1)   |   /* Cấu hình độ phân giải 10-BIT */
+                  ADC_CFG1_MODE(0)   |   /* Cấu hình độ phân giải 8-BIT */
                   ADC_CFG1_ADIV(1);      /* Cấu hình bộ chia clock là 2 */
 
     /* Chọn chế độ kích hoạt chuyển đổi bằng phần mềm */
@@ -64,7 +67,7 @@ uint8_t ADC_Init(void)
 /**
  * @brief  Thực hiện một lần chuyển đổi ADC trên một kênh chỉ định.
  * @param  channel Số thứ tự của kênh analog cần đọc giá trị.
- * @return Giá trị số 10-bit (0-1023) sau khi chuyển đổi.
+ * @return Giá trị số 8-bit (0-255) sau khi chuyển đổi.
  */
 uint16_t ADC_Read_Channel(uint8_t channel)
 {

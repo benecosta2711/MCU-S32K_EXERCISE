@@ -5,7 +5,7 @@
  * dựa trên một bộ đếm thời gian phần cứng (hardware timer) duy nhất (ví dụ: LPIT).
  * Nó hoạt động dựa trên một ngắt định kỳ (tick) để quản lý các bộ đếm.
  *
- * @author ADMIN
+ * @author Nguyen Vuong Trung Nam
  * @date Sep 30, 2025
  */
 
@@ -16,7 +16,6 @@
 #include "my_nvic.h"
 #include "S32K144.h"
 
-/* Định nghĩa số lượng software timer tối đa mà thư viện hỗ trợ */
 #define MAX_SOFTWARE_TIMERS   10
 
 /**

@@ -1,8 +1,11 @@
-/*
- * adc.h
+/**
+ * @file adc.h
+ * @brief Cung cấp thư viện cấu hình và sử dụng adc cơ bản.
+ * @details Thư viện cấu hình adc sử dụng clock SPLL, sử dụng 8-bit phân giải, có hỗ trợ hiệu chỉnh thống số
+ * trước khi hoạt động và kích hoạt chu tình lấy mẫu bằng phần mềm.
  *
- *  Created on: Oct 1, 2025
- *      Author: ADMIN
+ * @author Nguyen Vuong Trung Nam
+ * @date Oct 1, 2025
  */
 
 #ifndef ADC_H_
@@ -15,7 +18,7 @@
 #define ADC_INIT_FAIL   1
 
 /**
- * @brief Khởi tạo, hiệu chuẩn và cấu hình ADC0 cho chế độ 10-bit.
+ * @brief Khởi tạo, hiệu chuẩn và cấu hình ADC0 cho chế độ 8-bit.
  * @note  Hàm này nên được gọi một lần duy nhất khi khởi động hệ thống.
  * @return ADC_SUCCESS nếu thành công, ADC_INIT_FAIL nếu hiệu chuẩn thất bại.
  */

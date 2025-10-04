@@ -1,10 +1,9 @@
-/*
- * my_nvic.h
- *
- *  Created on: Sep 22, 2025
- *      Author: ADMIN
+/**
+ * @file my_nvic.h
+ * @brief File định nghĩa các macro hỗ trợ việc tương tác với NVIC. 
+ * @author Nguyen Vuong Trung Nam
+ * @date Sep 30, 2025
  */
-
 #ifndef MY_NVIC_H_
 #define MY_NVIC_H_
 
