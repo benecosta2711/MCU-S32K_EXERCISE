@@ -36,9 +36,21 @@
 #define HAL_LPUART2             2U
 
 /* Dummy define for testing the hal layer */
-#define ARM_USART_EVENT_RECEIVE_COMPLETE (1UL << 1)
-#define ARM_USART_EVENT_TX_COMPLETE (1UL << 3)
-#define ARM_USART_EVENT_RX_OVERFLOW (1UL << 5)
+#define ARM_USART_EVENT_SEND_COMPLETE       (1UL << 0)  ///< Send completed; however USART may still transmit data
+#define ARM_USART_EVENT_RECEIVE_COMPLETE    (1UL << 1)  ///< Receive completed
+#define ARM_USART_EVENT_TRANSFER_COMPLETE   (1UL << 2)  ///< Transfer completed
+#define ARM_USART_EVENT_TX_COMPLETE         (1UL << 3)  ///< Transmit completed (optional)
+#define ARM_USART_EVENT_TX_UNDERFLOW        (1UL << 4)  ///< Transmit data not available (Synchronous Slave)
+#define ARM_USART_EVENT_RX_OVERFLOW         (1UL << 5)  ///< Receive data overflow
+#define ARM_USART_EVENT_RX_TIMEOUT          (1UL << 6)  ///< Receive character timeout (optional)
+#define ARM_USART_EVENT_RX_BREAK            (1UL << 7)  ///< Break detected on receive
+#define ARM_USART_EVENT_RX_FRAMING_ERROR    (1UL << 8)  ///< Framing error detected on receive
+#define ARM_USART_EVENT_RX_PARITY_ERROR     (1UL << 9)  ///< Parity error detected on receive
+#define ARM_USART_EVENT_CTS                 (1UL << 10) ///< CTS state changed (optional)
+#define ARM_USART_EVENT_DSR                 (1UL << 11) ///< DSR state changed (optional)
+#define ARM_USART_EVENT_DCD                 (1UL << 12) ///< DCD state changed (optional)
+#define ARM_USART_EVENT_RI                  (1UL << 13) ///< RI  state changed (optional)
+
 
 /**
  * @brief Defines HAL-specific data bit configurations.
@@ -96,6 +108,14 @@ typedef struct
  * The 'event' parameter will be a bitmask of CMSIS USART events.
  */
 typedef void (*HAL_UART_Callback_t)(uint32_t event);
+
+extern volatile uint8_t* g_txBuffer;
+extern volatile uint32_t g_txBufferLength;
+extern volatile uint32_t g_txBufferCount;
+
+extern volatile uint8_t* g_rxBuffer;
+extern volatile uint32_t g_rxBufferCount;
+extern volatile uint32_t g_rxBufferLength;
 
 /*******************************************************************************
  * API

@@ -97,11 +97,19 @@ static const uart_map_t s_uartMap[] = {
     }
 };
 
+volatile uint8_t* g_txBuffer = NULL;
+volatile uint32_t g_txBufferCount = 0;
+volatile uint32_t g_txBufferLength = 0;
+
+volatile uint8_t* g_rxBuffer = NULL;
+volatile uint32_t g_rxBufferCount = 0;
+volatile uint32_t g_rxBufferLength = 0;
+
+
 /**
  * @brief Array to store registered callback functions for each UART instance.
  */
 static HAL_UART_Callback_t s_uartCallbacks[sizeof(s_uartMap) / sizeof(uart_map_t)];
-
 /*******************************************************************************
  * Code
  ******************************************************************************/
@@ -443,23 +451,83 @@ uint32_t HAL_UART_GetStatusFlags(uint32_t instance)
  */
 static void HAL_UART_IRQHandler(uint32_t instance)
 {
+    LPUART_Type* base = s_uartMap[instance].base;
     uint32_t stat = 0U;
     uint32_t events = 0U;
 
+
     if (instance < (sizeof(s_uartMap) / sizeof(uart_map_t)))
     {
-        stat = s_uartMap[instance].base->STAT;
+    	stat = base->STAT;
 
-        if (((stat & LPUART_STAT_RDRF_MASK) != 0U) && ((s_uartMap[instance].base->CTRL & LPUART_CTRL_RIE_MASK) != 0U))
+        /* Check transmit data register empty*/
+        if(((stat & LPUART_STAT_TDRE_MASK) != 0U) && ((base->CTRL & LPUART_CTRL_TIE_MASK) != 0U))
         {
-            events |= ARM_USART_EVENT_RECEIVE_COMPLETE; /* (1UL << 1) */
+			if(g_txBufferCount < g_txBufferLength)
+			{
+				base->DATA = (uint32_t)g_txBuffer[g_txBufferCount];
+				g_txBufferCount++;
+			}
+			else
+			{
+				HAL_UART_DisableInterrupts(instance, HAL_UART_INT_TX_DATA_REG_EMPTY);
+
+				/* Reset buffer resource */
+				g_txBuffer = NULL;
+				g_txBufferCount = 0;
+				g_txBufferLength = 0;
+				events |= ARM_USART_EVENT_SEND_COMPLETE;
+			}
+        }
+        else
+        {
+        	/* Do nothing */
+        }
+
+        /* Check receive complete*/
+        if (((stat & LPUART_STAT_RDRF_MASK) != 0U) && ((base->CTRL & LPUART_CTRL_RIE_MASK) != 0U))
+        {
+        	if(g_rxBuffer != NULL)
+        	{
+        		uint8_t dataByte = (uint8_t)base->DATA;
+
+        		if(g_rxBufferCount < g_rxBufferLength)
+        		{
+        			g_rxBuffer[g_rxBufferCount] = dataByte;
+
+        			g_rxBufferCount++;
+        		}
+        		else
+        		{
+        			/* Do nothing */
+        		}
+
+        		if(g_rxBufferCount == g_rxBufferLength)
+        		{
+        			events |= ARM_USART_EVENT_RECEIVE_COMPLETE; /* (1UL << 1) */
+
+        			g_rxBuffer = NULL;
+        			g_rxBufferCount = 0;
+					g_rxBufferLength = 0;
+
+					HAL_UART_DisableInterrupts(HAL_LPUART1, HAL_UART_INT_RX_DATA_REG_FULL);
+
+					events |= ARM_USART_EVENT_RECEIVE_COMPLETE;
+        		}
+
+        	}
+        	else
+        	{
+        		/* Do nothing */
+        	}
         }
         else
         {
             /* Do nothing */
         }
 
-        if (((stat & LPUART_STAT_TC_MASK) != 0U) && ((s_uartMap[instance].base->CTRL & LPUART_CTRL_TCIE_MASK) != 0U))
+        /* Check transmit complete */
+        if (((stat & LPUART_STAT_TC_MASK) != 0U) && ((base->CTRL & LPUART_CTRL_TCIE_MASK) != 0U))
         {
             events |= ARM_USART_EVENT_TX_COMPLETE; /* (1UL << 3) */
         }
@@ -480,6 +548,7 @@ static void HAL_UART_IRQHandler(uint32_t instance)
             /* Do nothing */
         }
 
+        /* Publish event to application */
         if ((events != 0U) && (s_uartCallbacks[instance] != NULL))
         {
             s_uartCallbacks[instance](events);
