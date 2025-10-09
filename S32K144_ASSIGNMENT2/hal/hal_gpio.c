@@ -6,10 +6,9 @@
  ******************************************************************************/
 
 /* Định nghĩa các pin ảo được sử dụng trong dự án */
-#define PIN_BUTTON1             0U
-#define PIN_BUTTON2             1U
-#define PIN_LED_RED             2U
-#define PIN_LED_GREEN           3U
+#define PIN_LED_BLUE            0U
+#define PIN_LED_RED             1U
+#define PIN_LED_GREEN           2U
 
 /* Tổng số pin ảo được quản lý bởi HAL */
 #define HAL_VIRTUAL_PIN_COUNT   (sizeof(s_pinMap) / sizeof(pin_map_t))
@@ -27,8 +26,7 @@
  * @brief Bảng ánh xạ từ pin ảo sang thông tin phần cứng.
  */
 static const pin_map_t s_pinMap[] = {
-    [PIN_BUTTON1]   = {IP_PORTE, IP_PTE,  4U, PCC_PORTE_INDEX, PORTE_IRQn},
-    [PIN_BUTTON2]   = {IP_PORTE, IP_PTE,  5U, PCC_PORTE_INDEX, PORTE_IRQn},
+	[PIN_LED_BLUE]   = {IP_PORTD, IP_PTD, 0U, PCC_PORTD_INDEX, PORTD_IRQn},
     [PIN_LED_RED]   = {IP_PORTD, IP_PTD, 15U, PCC_PORTD_INDEX, PORTD_IRQn},
     [PIN_LED_GREEN] = {IP_PORTD, IP_PTD, 16U, PCC_PORTD_INDEX, PORTD_IRQn}
 };
@@ -283,23 +281,4 @@ void HAL_GPIO_ClearInterruptFlag(uint32_t virtual_pin)
 
 void PORTE_IRQHandler(void)
 {
-    if (HAL_GPIO_IsInterruptFlagSet(PIN_BUTTON1))
-    {
-        HAL_GPIO_ClearInterruptFlag(PIN_BUTTON1);
-
-        if (s_gpioCallbacks[PIN_BUTTON1] != NULL)
-        {
-            s_gpioCallbacks[PIN_BUTTON1](PIN_BUTTON1, HAL_GPIO_TRIGGER_FALLING_EDGE); /* Event: Falling edge */
-        }
-    }
-
-    if (HAL_GPIO_IsInterruptFlagSet(PIN_BUTTON2))
-    {
-        HAL_GPIO_ClearInterruptFlag(PIN_BUTTON2);
-
-        if (s_gpioCallbacks[PIN_BUTTON2] != NULL)
-        {
-            s_gpioCallbacks[PIN_BUTTON2](PIN_BUTTON2, HAL_GPIO_TRIGGER_FALLING_EDGE); /* Event: Falling edge */
-        }
-    }
 }

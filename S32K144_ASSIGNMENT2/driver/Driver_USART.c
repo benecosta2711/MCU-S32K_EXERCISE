@@ -67,8 +67,6 @@ static int32_t ARM_USART_Initialize(ARM_USART_SignalEvent_t cb_event)
 			/* Do nothing */
 		}
 
-		HAL_UART_EnableTransmitter(HAL_LPUART1, 1);
-
 	}
 	else
 	{
