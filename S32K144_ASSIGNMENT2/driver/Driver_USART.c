@@ -262,6 +262,14 @@ static ARM_USART_STATUS ARM_USART_GetStatus(void)
 			.rx_parity_error = 0,
 			.reserved = 0
 	};
+	uint32_t stat_reg = HAL_UART_GetStatusFlags(HAL_LPUART1);
+
+
+	retVal.tx_busy = (NULL == g_txBuffer) ? 0 : 1;
+	retVal.rx_busy = (NULL == g_rxBuffer) ? 0 : 1;
+	retVal.rx_framing_error = (stat_reg & LPUART_STAT_FE_MASK) ? 1 : 0;
+	retVal.rx_overflow = (stat_reg & LPUART_STAT_OR_MASK) ? 1 : 0;
+	retVal.rx_parity_error = (stat_reg & LPUART_STAT_PF_MASK) ? 1 : 0;
 
 	return retVal;
 }
@@ -273,13 +281,15 @@ static int32_t ARM_USART_SetModemControl(ARM_USART_MODEM_CONTROL control)
 
 static ARM_USART_MODEM_STATUS ARM_USART_GetModemStatus(void)
 {
+	/* Dummy data */
 	ARM_USART_MODEM_STATUS retVal = {
 			.cts = 0,
-			.dsr = 0,
 			.dcd = 0,
-			.ri = 0,
-			.reserved = 0
+			.dsr = 0,
+			.reserved = 0,
+			.ri = 0
 	};
+
 
 	return retVal;
 }
